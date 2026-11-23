@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#14302A">
+<meta name="description" content="Budget d'épargne personnel en FCFA, avec calculs automatiques.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Max d'économies</title>
+<style>
+:root{
+  color-scheme: light dark;
+  --bg:#E9EFE9; --surface:#F7FAF6; --ink:#14302A; --muted:#5B716A; --line:#C9D6CE;
+  --save:#E0A100; --save-2:#F3D36B; --danger:#B83A27; --focus:#14302A;
+  --s1:#2F5A4F; --s2:#4F7A6D; --s3:#76998D; --s4:#9DB8AD; --s5:#BDD0C7;
+  --on-save:#14302A;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0F1A17; --surface:#16251F; --ink:#E8F0EA; --muted:#98ADA4; --line:#2A3F37;
+    --save:#F2C230; --save-2:#FFE08A; --danger:#FF8A75; --focus:#E8F0EA;
+    --s1:#5E9283; --s2:#4A7568; --s3:#3A5E53; --s4:#2F4D44; --s5:#27423A;
+    --on-save:#14302A;
+  }
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif;
+  font-size:16px; line-height:1.5; -webkit-text-size-adjust:100%;
+}
+main{max-width:560px; margin:0 auto; padding:24px 16px 56px}
+h1{font-size:20px; margin:0 0 2px; font-weight:800; letter-spacing:-0.01em}
+.sub{margin:0 0 20px; color:var(--muted); font-size:15px}
+h2{font-size:17px; margin:0 0 12px; font-weight:700}
+section{padding:22px 0; border-top:1px solid var(--line)}
+section.hero{border-top:0; padding:0 0 26px}
+
+.hero-box{background:var(--surface); border-radius:22px; padding:22px 20px 20px}
+.hero-amount{
+  font-size:clamp(42px,13.5vw,68px); font-weight:800; letter-spacing:-0.03em; line-height:1.05;
+  font-variant-numeric:tabular-nums;
+}
+.hero-amount small{font-size:0.38em; font-weight:700; letter-spacing:0; margin-left:6px; color:var(--muted)}
+.hero-sub{margin:4px 0 18px; color:var(--muted)}
+.bar{display:flex; gap:3px; height:30px; width:100%}
+.bar span{display:block; height:100%; border-radius:8px; min-width:3px; transition:width .3s ease}
+.compose{margin:12px 0 18px; font-size:14px; color:var(--muted)}
+.facts{display:flex; gap:22px; margin:0; flex-wrap:wrap}
+.facts div{min-width:0}
+.facts dt{font-size:13px; color:var(--muted)}
+.facts dd{margin:0; font-size:18px; font-weight:700; font-variant-numeric:tabular-nums}
+.alert{margin:16px 0 0; padding:10px 12px; border-radius:10px; border:1.5px solid var(--danger); color:var(--danger); font-size:14px; font-weight:600}
+
+.row{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px}
+.name-wrap{flex:1 1 100%; display:flex; align-items:center; gap:10px}
+.dot{width:14px; height:14px; border-radius:5px; flex:0 0 auto}
+.row .amt{flex:1 1 110px; min-width:0}
+.row select{flex:0 0 auto}
+.hint{flex:1 1 100%; margin:-2px 0 0 24px; font-size:13px; color:var(--muted)}
+input,select{
+  font:inherit; font-size:16px; color:var(--ink); background:var(--surface);
+  border:1px solid var(--line); border-radius:10px; padding:10px 12px; min-height:44px;
+}
+.name-wrap input{flex:1 1 auto; min-width:0}
+input[type=number]{font-variant-numeric:tabular-nums}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--focus); outline-offset:2px}
+button{font:inherit; color:var(--ink); cursor:pointer}
+.del{
+  width:44px; height:44px; border-radius:10px; border:1px solid var(--line);
+  background:transparent; font-size:22px; line-height:1; color:var(--muted);
+}
+.add{
+  margin-top:4px; padding:10px 14px; min-height:44px; border-radius:10px;
+  border:1.5px dashed var(--muted); background:transparent; font-weight:600;
+}
+.auto-row{
+  display:flex; align-items:center; gap:10px; margin-top:16px; padding:14px;
+  border-radius:14px; background:var(--save-2); color:var(--on-save);
+}
+.auto-row .dot{background:var(--on-save)}
+.auto-row .lbl{flex:1; font-weight:700}
+.auto-row .lbl small{display:block; font-weight:500; font-size:13px; opacity:.8}
+.auto-row .val{font-weight:800; font-size:18px; font-variant-numeric:tabular-nums; text-align:right}
+.auto-row .val small{display:block; font-weight:500; font-size:13px; opacity:.8}
+
+.fields{display:grid; gap:12px; grid-template-columns:1fr 1fr}
+.fields label{display:flex; flex-direction:column; gap:4px; font-size:14px; color:var(--muted)}
+.fields input{width:100%}
+.result p{margin:12px 0 0}
+.result p:first-child{margin-top:16px}
+.result .ok{font-weight:600}
+.result .warn{font-weight:600; color:var(--danger)}
+
+table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums}
+td{padding:10px 0; border-bottom:1px solid var(--line)}
+td:last-child{text-align:right; font-weight:700}
+tr:last-child td{border-bottom:0}
+
+footer{padding-top:22px; border-top:1px solid var(--line)}
+.reset{background:transparent; border:0; padding:8px 0; color:var(--muted); text-decoration:underline; min-height:44px}
+@media (prefers-reduced-motion: reduce){ .bar span{transition:none} }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Max d'économies</h1>
+    <p class="sub">Entre tes chiffres, le reste se calcule tout seul.</p>
+  </header>
+
+  <section class="hero">
+    <div class="hero-box">
+      <div class="hero-amount" id="heroAmount"></div>
+      <p class="hero-sub">mis de côté chaque semaine</p>
+      <div class="bar" id="bar" role="img" aria-label="Répartition de ton revenu de la semaine"></div>
+      <p class="compose" id="compose"></p>
+      <dl class="facts">
+        <div><dt>Par mois</dt><dd id="factMonth"></dd></div>
+        <div><dt>Par an</dt><dd id="factYear"></dd></div>
+        <div><dt>Part du revenu</dt><dd id="factShare"></dd></div>
+      </dl>
+      <p class="alert" id="alert" role="status" hidden></p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Revenu</h2>
+    <div class="row">
+      <input class="amt" id="incAmt" type="number" inputmode="numeric" min="0" step="500" aria-label="Montant du revenu">
+      <select id="incPer" aria-label="Période du revenu">
+        <option value="week">par semaine</option>
+        <option value="month">par mois</option>
+      </select>
+    </div>
+  </section>
+
+  <section>
+    <h2>Cotisations et épargne déjà en place</h2>
+    <div id="saveList"></div>
+    <button class="add" type="button" id="addSave">Ajouter une épargne</button>
+  </section>
+
+  <section>
+    <h2>Dépenses</h2>
+    <div id="spendList"></div>
+    <button class="add" type="button" id="addSpend">Ajouter une dépense</button>
+    <div class="auto-row">
+      <span class="dot" aria-hidden="true"></span>
+      <div class="lbl">Épargne en plus<small>revenu − cotisations − dépenses</small></div>
+      <div class="val"><span id="autoWeek"></span><small id="autoMonth"></small></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Objectif</h2>
+    <div class="fields">
+      <label>Montant visé (FCFA)
+        <input id="goalAmt" type="number" inputmode="numeric" min="0" step="1000">
+      </label>
+      <label>Date limite (facultatif)
+        <input id="goalDate" type="date">
+      </label>
+    </div>
+    <div class="result" id="goalResult"></div>
+  </section>
+
+  <section>
+    <h2>Épargne cumulée</h2>
+    <table><tbody id="proj"></tbody></table>
+  </section>
+
+  <footer>
+    <button class="reset" type="button" id="reset">Remettre les chiffres de départ</button>
+  </footer>
+</main>
+
+<script>
+const DEFAULTS = {
+  income:{amount:0, period:'week'},
+  saves:[{name:'Cotisation', amount:0, period:'week'}],
+  spends:[
+    {name:'Alimentation', amount:0, period:'week'},
+    {name:'Électricité', amount:0, period:'month'},
+    {name:'Transport', amount:0, period:'week'},
+    {name:'Imprévus', amount:0, period:'week'},
+    {name:'Loisirs', amount:0, period:'week'}
+  ],
+  goal:{amount:0, date:''}
+};
+let state = JSON.parse(JSON.stringify(DEFAULTS));
+
+const $ = id => document.getElementById(id);
+const toWeek = it => (Number(it.amount) || 0) * (it.period === 'month' ? 12/52 : 1);
+const fmt = n => Math.round(n).toLocaleString('fr-FR') + '\u00a0FCFA';
+const SPEND_COLORS = ['var(--s1)','var(--s2)','var(--s3)','var(--s4)','var(--s5)'];
+
+/* Sauvegarde sur le téléphone */
+const KEY = 'max-d-economies-v1';
+let saveTimer;
+function persist(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{
+    try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+  }, 300);
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){
+      const s = JSON.parse(raw);
+      if(s && s.income && Array.isArray(s.saves) && Array.isArray(s.spends) && s.goal) return s;
+    }
+  }catch(e){}
+  return null;
+}
+
+/* Construction des listes */
+function buildList(container, arr, colorFn, kindLabel){
+  container.innerHTML = '';
+  arr.forEach((item, i)=>{
+    const row = document.createElement('div'); row.className = 'row';
+
+    const nameWrap = document.createElement('label'); nameWrap.className = 'name-wrap';
+    const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = colorFn(i);
+    const name = document.createElement('input'); name.type = 'text'; name.value = item.name;
+    name.setAttribute('aria-label', 'Nom de la ligne');
+    name.addEventListener('input', ()=>{ item.name = name.value; update(); });
+    nameWrap.append(dot, name);
+
+    const amt = document.createElement('input'); amt.type = 'number'; amt.className = 'amt';
+    amt.inputMode = 'numeric'; amt.min = '0'; amt.step = '100'; amt.value = item.amount;
+    amt.setAttribute('aria-label', 'Montant en FCFA');
+    amt.addEventListener('input', ()=>{ item.amount = amt.value === '' ? 0 : Number(amt.value); update(); });
+
+    const sel = document.createElement('select');
+    sel.setAttribute('aria-label', 'Période');
+    sel.innerHTML = '<option value="week">par semaine</option><option value="month">par mois</option>';
+    sel.value = item.period;
+    sel.addEventListener('change', ()=>{ item.period = sel.value; update(); });
+
+    const del = document.createElement('button'); del.type = 'button'; del.className = 'del';
+    del.textContent = '×'; del.setAttribute('aria-label', 'Supprimer ' + (item.name || 'cette ligne'));
+    del.addEventListener('click', ()=>{ arr.splice(i,1); renderLists(); update(); });
+
+    const hint = document.createElement('span'); hint.className = 'hint';
+    row._refresh = ()=>{
+      if(item.period === 'month'){
+        hint.hidden = false;
+        hint.textContent = '≈ ' + fmt(toWeek(item)) + ' par semaine';
+      } else { hint.hidden = true; }
+    };
+
+    row.append(nameWrap, amt, sel, del, hint);
+    container.append(row);
+  });
+}
+function renderLists(){
+  buildList($('saveList'), state.saves, ()=>'var(--save)');
+  buildList($('spendList'), state.spends, i=>SPEND_COLORS[i % SPEND_COLORS.length]);
+}
+
+/* Calculs et affichage */
+function update(){
+  const inc = toWeek(state.income);
+  const savesW = state.saves.reduce((s,i)=>s+toWeek(i), 0);
+  const spendsW = state.spends.reduce((s,i)=>s+toWeek(i), 0);
+  const extra = inc - savesW - spendsW;
+  const total = Math.max(inc - spendsW, 0);
+
+  document.querySelectorAll('.row').forEach(r=>{ if(r._refresh) r._refresh(); });
+
+  $('heroAmount').innerHTML = Math.round(total).toLocaleString('fr-FR') + '<small>FCFA</small>';
+  $('compose').textContent = fmt(savesW) + ' de cotisations et épargnes fixes + ' + fmt(Math.max(extra,0)) + ' d\'épargne en plus';
+  $('factMonth').textContent = fmt(total * 52/12);
+  $('factYear').textContent = fmt(total * 52);
+  $('factShare').textContent = inc > 0 ? Math.round(total/inc*100) + ' %' : '0 %';
+
+  const alertEl = $('alert');
+  if(extra < 0){
+    alertEl.hidden = false;
+    alertEl.textContent = 'Tes cotisations et dépenses dépassent ton revenu de ' + fmt(-extra) + ' par semaine. Réduis une dépense pour retrouver de l\'épargne.';
+  } else { alertEl.hidden = true; }
+
+  /* Barre de répartition */
+  const denom = Math.max(inc, savesW + spendsW) || 1;
+  const bar = $('bar'); bar.innerHTML = '';
+  const seg = (w, color, label)=>{
+    if(w <= 0) return;
+    const s = document.createElement('span');
+    s.style.width = (w/denom*100) + '%'; s.style.background = color; s.title = label + ' : ' + fmt(w);
+    bar.append(s);
+  };
+  state.saves.forEach(it=>seg(toWeek(it), 'var(--save)', it.name || 'Épargne'));
+  if(extra > 0) seg(extra, 'var(--save-2)', 'Épargne en plus');
+  state.spends.forEach((it,i)=>seg(toWeek(it), SPEND_COLORS[i % SPEND_COLORS.length], it.name || 'Dépense'));
+
+  /* Ligne automatique */
+  $('autoWeek').textContent = fmt(Math.max(extra,0)) + ' / sem.';
+  $('autoMonth').textContent = '≈ ' + fmt(Math.max(extra,0) * 52/12) + ' / mois';
+
+  /* Objectif */
+  const res = $('goalResult'); res.innerHTML = '';
+  const addP = (txt, cls)=>{ const p = document.createElement('p'); if(cls) p.className = cls; p.textContent = txt; res.append(p); };
+  const g = Number(state.goal.amount) || 0;
+  if(g <= 0){
+    addP('Entre un montant pour voir en combien de temps tu peux l\'atteindre.');
+  } else if(total <= 0){
+    addP('Avec ces chiffres, tu n\'épargnes rien. Réduis une dépense pour avancer vers ton objectif.', 'warn');
+  } else {
+    const weeks = g / total;
+    const d = new Date(); d.setDate(d.getDate() + Math.ceil(weeks * 7));
+    const dateFR = d.toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'});
+    addP('À ' + fmt(total) + ' par semaine, tu atteins ' + fmt(g) + ' en ' + Math.ceil(weeks) + ' semaines (environ ' + (weeks*12/52).toFixed(1).replace('.',',') + ' mois), vers le ' + dateFR + '.', 'ok');
+    if(state.goal.date){
+      const end = new Date(state.goal.date + 'T23:59:59');
+      const wl = Math.ceil((end - new Date()) / (7*86400000));
+      if(isNaN(wl) || wl <= 0){
+        addP('Cette date est déjà passée. Choisis une date à venir.', 'warn');
+      } else {
+        const need = g / wl, diff = total - need;
+        if(diff >= 0) addP('Pour y être à cette date, il faut ' + fmt(need) + ' par semaine. Tu es dans les temps, avec ' + fmt(diff) + ' de marge par semaine.', 'ok');
+        else addP('Pour y être à cette date, il faut ' + fmt(need) + ' par semaine. Il te manque ' + fmt(-diff) + ' par semaine : réduis tes dépenses de ce montant ou choisis une date plus tardive.', 'warn');
+      }
+    }
+  }
+
+  /* Projection */
+  const periods = [['Dans 1 mois', 52/12], ['Dans 3 mois', 13], ['Dans 6 mois', 26], ['Dans 1 an', 52]];
+  $('proj').innerHTML = periods.map(p=>'<tr><td>'+p[0]+'</td><td>'+fmt(total*p[1])+'</td></tr>').join('');
+
+  persist();
+}
+
+/* Champs fixes */
+function bindStatic(){
+  $('incAmt').value = state.income.amount;
+  $('incPer').value = state.income.period;
+  $('goalAmt').value = state.goal.amount || '';
+  $('goalDate').value = state.goal.date || '';
+}
+$('incAmt').addEventListener('input', e=>{ state.income.amount = e.target.value === '' ? 0 : Number(e.target.value); update(); });
+$('incPer').addEventListener('change', e=>{ state.income.period = e.target.value; update(); });
+$('goalAmt').addEventListener('input', e=>{ state.goal.amount = e.target.value === '' ? 0 : Number(e.target.value); update(); });
+$('goalDate').addEventListener('input', e=>{ state.goal.date = e.target.value; update(); });
+$('goalDate').min = new Date().toISOString().slice(0,10);
+$('addSave').addEventListener('click', ()=>{ state.saves.push({name:'Nouvelle épargne', amount:0, period:'week'}); renderLists(); update(); });
+$('addSpend').addEventListener('click', ()=>{ state.spends.push({name:'Nouvelle dépense', amount:0, period:'week'}); renderLists(); update(); });
+$('reset').addEventListener('click', ()=>{
+  state = JSON.parse(JSON.stringify(DEFAULTS));
+  bindStatic(); renderLists(); update();
+});
+
+/* Démarrage */
+const saved = load();
+if(saved) state = saved;
+bindStatic(); renderLists(); update();
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('./sw.js').catch(()=>{}); });
+}
+</script>
+</body>
+</html>
